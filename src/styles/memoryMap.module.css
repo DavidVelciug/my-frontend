@@ -1,0 +1,13 @@
+.mapWrap {
+  height: 420px;
+  border-radius: 24px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  margin-top: 1rem;
+}
+
+.mapHint {
+  margin-top: 1rem;
+  font-size: 0.9rem;
+  color: var(--text-dim);
+}
