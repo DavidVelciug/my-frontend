@@ -13,7 +13,7 @@ export const products: Product[] = [
     name: "Послание потомкам", 
     price: 2999, 
     category: "Личное", 
-    image: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=500", // Красивый закат/рассвет как символ передачи знаний
+    image: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=500", 
     description: "Как мы жили в 2024 году"
   },
   { 
