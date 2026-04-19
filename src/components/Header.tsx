@@ -2,8 +2,12 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import styles from '../styles/header.module.css';
 import layout from '../styles/layout.module.css';
+import { canAccess, canUseExtendedFeatures, getRole, logout } from '../auth/session';
 
 const Header: React.FC = () => {
+  const role = getRole();
+  const showExtended = canUseExtendedFeatures(role);
+
   return (
     <header className={styles.header}>
       <div className={styles.headerContent}>
@@ -17,30 +21,53 @@ const Header: React.FC = () => {
           <Link to="/catalog" className={styles.navLink}>
             Каталог
           </Link>
-          <Link to="/create-capsule" className={styles.navLink}>
-            Создать капсулу
-          </Link>
-          <Link to="/my-capsules" className={styles.navLink}>
-            Мои капсулы
-          </Link>
-          <Link to="/feed" className={styles.navLink}>
-            Лента
-          </Link>
-          <Link to="/map" className={styles.navLink}>
-            Карта
-          </Link>
           <Link to="/settings" className={styles.navLink}>
             Настройки
           </Link>
-          <Link to="/admin/moderation" className={styles.navLink}>
-            Модерация
-          </Link>
-          <Link to="/admin/stats" className={styles.navLink}>
-            Статистика
-          </Link>
-          <Link to="/login" className={`${layout.btnPrimary} ${styles.navBtn}`}>
-            Войти
-          </Link>
+
+          {showExtended && (
+            <details className={styles.sectionsMenu}>
+              <summary className={styles.menuSummary}>Разделы</summary>
+              <div className={styles.menuItems}>
+                <Link to="/create-capsule" className={styles.menuItem}>
+                  Создать капсулу
+                </Link>
+                <Link to="/my-capsules" className={styles.menuItem}>
+                  Мои капсулы
+                </Link>
+                <Link to="/feed" className={styles.menuItem}>
+                  Лента
+                </Link>
+                <Link to="/map" className={styles.menuItem}>
+                  Карта
+                </Link>
+                {canAccess(role, 'moderation') && (
+                  <Link to="/admin/moderation" className={styles.menuItem}>
+                    Модерация
+                  </Link>
+                )}
+                {canAccess(role, 'stats') && (
+                  <Link to="/admin/stats" className={styles.menuItem}>
+                    Статистика
+                  </Link>
+                )}
+              </div>
+            </details>
+          )}
+
+          {role === 'guest' ? (
+            <Link to="/login" className={`${layout.btnPrimary} ${styles.navBtn}`}>
+              Войти
+            </Link>
+          ) : (
+            <Link
+              to="/"
+              className={`${layout.btnPrimary} ${styles.navBtn}`}
+              onClick={() => logout()}
+            >
+              Выйти
+            </Link>
+          )}
         </nav>
       </div>
     </header>
