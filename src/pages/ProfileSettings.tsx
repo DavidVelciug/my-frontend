@@ -4,10 +4,12 @@ import Footer from '../components/Footer';
 import layout from '../styles/layout.module.css';
 import page from '../styles/pageSection.module.css';
 import catalog from '../styles/catalog.module.css';
-import { DEMO_USER_ID, fetchJson } from '../config/api';
+import { fetchJson } from '../config/api';
+import { getCurrentUserId } from '../auth/session';
 import type { ResponceMsg, UserAccountDto } from '../types/api';
 
 const ProfileSettings: React.FC = () => {
+  const userId = getCurrentUserId();
   const [user, setUser] = useState<UserAccountDto | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -17,8 +19,12 @@ const ProfileSettings: React.FC = () => {
     let cancelled = false;
     (async () => {
       try {
+        if (!userId) {
+          setError('Сначала выполните вход.');
+          return;
+        }
         setLoading(true);
-        const u = await fetchJson<UserAccountDto>(`/api/user/id?id=${DEMO_USER_ID}`);
+        const u = await fetchJson<UserAccountDto>(`/api/user/id?id=${userId}`);
         if (!cancelled) {
           setUser(u);
           setError(null);
@@ -32,7 +38,7 @@ const ProfileSettings: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [userId]);
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,7 +61,7 @@ const ProfileSettings: React.FC = () => {
       <main className={layout.mainContent}>
         <div className={page.pageHeader}>
           <h1>Настройки профиля</h1>
-          <p>Уведомления и безопасность (демо-пользователь #{DEMO_USER_ID}).</p>
+          <p>Уведомления и безопасность вашего аккаунта.</p>
         </div>
         <div className={`${page.section} ${layout.container}`}>
           {loading && (
