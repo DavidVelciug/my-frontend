@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import SearchBar from '../components/SearchBar';
@@ -6,6 +7,7 @@ import FilterButtons from '../components/FilterButtons';
 import ProductList from '../components/ProductList';
 import Counter from '../components/Counter';
 import { products as mockProducts, Product } from '../data/products';
+import { addLike, addOpenedCapsule, getLikesMap, getTotalLikes } from '../auth/capsuleStore';
 import layout from '../styles/layout.module.css';
 import styles from '../styles/catalog.module.css';
 
@@ -16,6 +18,8 @@ const Catalog: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [likedCount, setLikedCount] = useState<number>(0);
+  const [likesMap, setLikesMap] = useState<Record<number, number>>({});
+  const navigate = useNavigate();
 
   const categories = ['Все', ...new Set(mockProducts.map((p) => p.category))];
 
@@ -25,6 +29,8 @@ const Catalog: React.FC = () => {
         setLoading(true);
         await new Promise((resolve) => setTimeout(resolve, 1000));
         setProducts(mockProducts);
+        setLikesMap(getLikesMap());
+        setLikedCount(getTotalLikes());
         setError(null);
       } catch (err: unknown) {
         setError(err instanceof Error ? err.message : 'Ошибка при загрузке');
@@ -42,8 +48,17 @@ const Catalog: React.FC = () => {
     return matchesSearch && matchesFilter;
   });
 
-  const handleLike = (_id: number, liked: boolean) => {
-    setLikedCount((prev) => (liked ? prev + 1 : prev - 1));
+  const handleLike = (id: number) => {
+    const updatedCount = addLike(id);
+    setLikesMap((prev) => ({ ...prev, [id]: updatedCount }));
+    setLikedCount(getTotalLikes());
+  };
+
+  const handleOpen = (id: number) => {
+    const item = products.find((p) => p.id === id);
+    if (!item) return;
+    addOpenedCapsule(item);
+    navigate('/opened-capsules');
   };
 
   return (
@@ -79,7 +94,7 @@ const Catalog: React.FC = () => {
           )}
 
           {!loading && !error && filteredProducts.length > 0 && (
-            <ProductList products={filteredProducts} onLike={handleLike} />
+            <ProductList products={filteredProducts} likesMap={likesMap} onLike={handleLike} onOpen={handleOpen} />
           )}
 
           {!loading && !error && filteredProducts.length === 0 && (
