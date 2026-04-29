@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { MapContainer, Marker, Popup, TileLayer } from 'react-leaflet';
 import L from 'leaflet';
 import icon from 'leaflet/dist/images/marker-icon.png';
@@ -19,6 +20,8 @@ const MemoryMap: React.FC = () => {
   const [capsules, setCapsules] = useState<TimeCapsuleDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [myPosition, setMyPosition] = useState<[number, number] | null>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const DefaultIcon = L.icon({
@@ -30,6 +33,25 @@ const MemoryMap: React.FC = () => {
     });
     L.Marker.prototype.options.icon = DefaultIcon;
   }, []);
+
+  useEffect(() => {
+    if (!navigator.geolocation) return;
+    const watcher = navigator.geolocation.watchPosition((pos) => {
+      setMyPosition([pos.coords.latitude, pos.coords.longitude]);
+    });
+    return () => navigator.geolocation.clearWatch(watcher);
+  }, []);
+
+  const distanceKm = (aLat: number, aLng: number, bLat: number, bLng: number) => {
+    const toRad = (v: number) => (v * Math.PI) / 180;
+    const R = 6371;
+    const dLat = toRad(bLat - aLat);
+    const dLng = toRad(bLng - aLng);
+    const aa =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(toRad(aLat)) * Math.cos(toRad(bLat)) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+    return R * (2 * Math.atan2(Math.sqrt(aa), Math.sqrt(1 - aa)));
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -99,6 +121,26 @@ const MemoryMap: React.FC = () => {
                         <strong>{titleById[l.capsuleId] ?? `Капсула #${l.capsuleId}`}</strong>
                         <br />
                         {l.placeLabel}
+                        <br />
+                        {myPosition && (
+                          <>
+                            Дистанция: {distanceKm(myPosition[0], myPosition[1], l.latitude, l.longitude).toFixed(2)} км
+                            <br />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const dist = distanceKm(myPosition[0], myPosition[1], l.latitude, l.longitude);
+                                if (dist <= 10) {
+                                  navigate(`/feed-capsule/${l.capsuleId}`);
+                                  return;
+                                }
+                                window.alert('Открытие доступно только в радиусе 10 км.');
+                              }}
+                            >
+                              Открыть капсулу
+                            </button>
+                          </>
+                        )}
                       </Popup>
                     </Marker>
                   ))}

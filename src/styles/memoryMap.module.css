@@ -1,4 +1,6 @@
 .mapWrap {
+  position: relative;
+  z-index: 1;
   height: 420px;
   border-radius: 24px;
   overflow: hidden;
@@ -6,8 +8,15 @@
   margin-top: 1rem;
 }
 
+.mapWrap :global(.leaflet-container),
+.mapWrap :global(.leaflet-pane),
+.mapWrap :global(.leaflet-control) {
+  z-index: 1 !important;
+}
+
 .mapHint {
   margin-top: 1rem;
   font-size: 0.9rem;
   color: var(--text-dim);
 }
+
