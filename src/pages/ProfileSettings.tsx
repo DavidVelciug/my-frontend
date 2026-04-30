@@ -6,6 +6,7 @@ import page from '../styles/pageSection.module.css';
 import catalog from '../styles/catalog.module.css';
 import { fetchJson } from '../config/api';
 import { getCurrentUserId } from '../auth/session';
+import { getAvatar, setAvatar } from '../auth/avatar';
 import type { ResponceMsg, UserAccountDto } from '../types/api';
 
 const ProfileSettings: React.FC = () => {
@@ -14,6 +15,7 @@ const ProfileSettings: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
+  const [avatar, setAvatarState] = useState(getAvatar());
 
   useEffect(() => {
     let cancelled = false;
@@ -49,6 +51,7 @@ const ProfileSettings: React.FC = () => {
         method: 'PUT',
         body: JSON.stringify(user),
       });
+      setAvatar(avatar);
       setMsg(res.isSuccess ? res.message : res.message);
     } catch (err: unknown) {
       setMsg(err instanceof Error ? err.message : 'Ошибка');
@@ -89,6 +92,16 @@ const ProfileSettings: React.FC = () => {
                   onChange={(e) => setUser({ ...user, displayName: e.target.value })}
                 />
               </label>
+              <label className={page.label}>
+                Ссылка на аватар
+                <input
+                  className={page.input}
+                  value={avatar}
+                  onChange={(e) => setAvatarState(e.target.value)}
+                  placeholder="https://..."
+                />
+              </label>
+              <img src={avatar} alt="Аватар" style={{ width: '96px', height: '96px', borderRadius: '50%' }} />
               <label className={`${page.row} ${page.muted}`}>
                 <input
                   type="checkbox"
