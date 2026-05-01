@@ -1,3 +1,32 @@
+# My Frontend
+
+## Требования
+- Node.js 20+
+- npm 10+
+
+## Настройка API
+1. Запустите backend (см. `backend/README.md`).
+2. При необходимости создайте `.env` в `my-frontend`:
+
+```env
+VITE_API_URL=http://localhost:5000
+```
+
+Если `VITE_API_URL` не задан, используется относительный путь `/api`.
+
+## Установка и запуск
+```bash
+npm install
+npm run dev
+```
+
+## Production build
+```bash
+npm run build
+npm run preview
+```
+
+
 # React + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.

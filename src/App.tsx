@@ -14,6 +14,8 @@ import AdminUsers from './pages/AdminUsers';
 import OpenedCapsules from './pages/OpenedCapsules';
 import CapsuleView from './pages/CapsuleView';
 import FeedCapsuleView from './pages/FeedCapsuleView';
+import ErrorPage from './pages/ErrorPage';
+import ModerationCapsuleReview from './pages/ModerationCapsuleReview';
 import { canAccess, canUseExtendedFeatures, getRole } from './auth/session';
 
 type GuardType = 'extended' | 'moderation' | 'stats';
@@ -68,8 +70,18 @@ function App() {
           path="/admin/moderation"
           element={<ProtectedRoute guard="moderation" element={<AdminModeration />} />}
         />
+        <Route
+          path="/admin/moderation/review"
+          element={<ProtectedRoute guard="moderation" element={<ModerationCapsuleReview />} />}
+        />
         <Route path="/admin/stats" element={<ProtectedRoute guard="stats" element={<AdminStats />} />} />
         <Route path="/admin/users" element={<ProtectedRoute guard="stats" element={<AdminUsers />} />} />
+        <Route path="/error/401" element={<ErrorPage code={401} title="Не авторизован" message="Войдите в систему, чтобы продолжить." />} />
+        <Route path="/error/402" element={<ErrorPage code={402} title="Требуется оплата" message="Для доступа к разделу нужен активный тариф." />} />
+        <Route path="/error/403" element={<ErrorPage code={403} title="Доступ запрещен" message="У вас нет прав на этот раздел." />} />
+        <Route path="/error/404" element={<ErrorPage code={404} title="Страница не найдена" message="Проверьте адрес страницы." />} />
+        <Route path="/error/500" element={<ErrorPage code={500} title="Ошибка сервера" message="Произошла внутренняя ошибка, попробуйте позже." />} />
+        <Route path="*" element={<Navigate to="/error/404" replace />} />
       </Routes>
     </Router>
   );

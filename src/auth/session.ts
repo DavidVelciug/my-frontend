@@ -3,6 +3,11 @@ export type AppRole = 'guest' | 'user' | 'moderator' | 'admin';
 const STORAGE_KEY = 'memorylane-role';
 const USER_ID_STORAGE_KEY = 'memorylane-user-id';
 const USER_NAME_STORAGE_KEY = 'memorylane-user-name';
+const SESSION_EVENT = 'memorylane-session-changed';
+
+function emitSessionChanged(): void {
+  window.dispatchEvent(new CustomEvent(SESSION_EVENT));
+}
 
 export function getRole(): AppRole {
   const value = localStorage.getItem(STORAGE_KEY);
@@ -15,6 +20,7 @@ export function getRole(): AppRole {
 
 export function setRole(role: AppRole): void {
   localStorage.setItem(STORAGE_KEY, role);
+  emitSessionChanged();
 }
 
 export function setCurrentUser(userId: number, displayName?: string | null): void {
@@ -22,6 +28,7 @@ export function setCurrentUser(userId: number, displayName?: string | null): voi
   if (displayName) {
     localStorage.setItem(USER_NAME_STORAGE_KEY, displayName);
   }
+  emitSessionChanged();
 }
 
 export function getCurrentUserId(): number | null {
@@ -35,6 +42,16 @@ export function logout(): void {
   localStorage.removeItem(STORAGE_KEY);
   localStorage.removeItem(USER_ID_STORAGE_KEY);
   localStorage.removeItem(USER_NAME_STORAGE_KEY);
+  emitSessionChanged();
+}
+
+export function subscribeSessionChange(listener: () => void): () => void {
+  window.addEventListener(SESSION_EVENT, listener);
+  window.addEventListener('storage', listener);
+  return () => {
+    window.removeEventListener(SESSION_EVENT, listener);
+    window.removeEventListener('storage', listener);
+  };
 }
 
 export function canAccess(role: AppRole, page: 'moderation' | 'stats'): boolean {

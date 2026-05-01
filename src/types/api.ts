@@ -13,6 +13,8 @@ export interface TimeCapsuleDto {
   createdAtUtc: string;
   recipientEmail: string;
   isPublic: boolean;
+  previewText?: string | null;
+  isLocked?: boolean;
 }
 
 export interface CapsuleLocationDto {
@@ -27,10 +29,35 @@ export interface UserAccountDto {
   id: number;
   email: string;
   displayName: string;
+  role: 'user' | 'moderator' | 'admin';
+  password: string;
   createdAtUtc: string;
   notifyEmailEnabled: boolean;
   notifyPushEnabled: boolean;
   loginAlertsEnabled: boolean;
+}
+
+export interface ProductDto {
+  id: number;
+  name: string;
+  price: number;
+  description?: string | null;
+  image?: string | null;
+  categoryId: number;
+  category?: string | null;
+}
+
+export interface UserLoginRequestDto {
+  email: string;
+  password: string;
+}
+
+export interface UserLoginResultDto {
+  isSuccess: boolean;
+  message: string;
+  userId?: number | null;
+  role: 'guest' | 'user' | 'moderator' | 'admin';
+  displayName?: string | null;
 }
 
 export interface ModerationReportDto {
