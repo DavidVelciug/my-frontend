@@ -8,6 +8,16 @@
   margin-top: 1rem;
 }
 
+.popupButton {
+  margin-top: 0.45rem;
+  border: 1px solid var(--border);
+  background: var(--gradient-primary);
+  color: #fff;
+  border-radius: 999px;
+  padding: 0.38rem 0.75rem;
+  cursor: pointer;
+}
+
 .mapWrap :global(.leaflet-container),
 .mapWrap :global(.leaflet-pane),
 .mapWrap :global(.leaflet-control) {
@@ -19,4 +29,3 @@
   font-size: 0.9rem;
   color: var(--text-dim);
 }
-

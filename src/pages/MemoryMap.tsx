@@ -6,14 +6,15 @@ import icon from 'leaflet/dist/images/marker-icon.png';
 import iconRetina from 'leaflet/dist/images/marker-icon-2x.png';
 import iconShadow from 'leaflet/dist/images/marker-shadow.png';
 import 'leaflet/dist/leaflet.css';
-import Header from '../components/Header';
-import Footer from '../components/Footer';
+import Header from '../components/layout/Header';
+import Footer from '../components/layout/Footer';
 import layout from '../styles/layout.module.css';
 import page from '../styles/pageSection.module.css';
 import mapStyles from '../styles/memoryMap.module.css';
 import catalog from '../styles/catalog.module.css';
 import { fetchJson } from '../config/api';
-import type { CapsuleLocationDto, TimeCapsuleDto } from '../types/api';
+import type { CapsuleLocationDto, TimeCapsuleDto, UserAccountDto } from '../types/api';
+import { getCurrentUserId } from '../auth/session';
 
 const MemoryMap: React.FC = () => {
   const [locations, setLocations] = useState<CapsuleLocationDto[]>([]);
@@ -21,6 +22,8 @@ const MemoryMap: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [myPosition, setMyPosition] = useState<[number, number] | null>(null);
+  const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
+  const currentUserId = getCurrentUserId();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -33,6 +36,13 @@ const MemoryMap: React.FC = () => {
     });
     L.Marker.prototype.options.icon = DefaultIcon;
   }, []);
+
+  useEffect(() => {
+    if (!currentUserId) return;
+    void fetchJson<UserAccountDto>(`/api/user/id?id=${currentUserId}`)
+      .then((u) => setCurrentUserEmail(u.email))
+      .catch(() => setCurrentUserEmail(null));
+  }, [currentUserId]);
 
   useEffect(() => {
     if (!navigator.geolocation) return;
@@ -82,9 +92,24 @@ const MemoryMap: React.FC = () => {
     () => Object.fromEntries(capsules.map((c) => [c.id, c.title])),
     [capsules],
   );
+  const capsuleById = useMemo(() => Object.fromEntries(capsules.map((c) => [c.id, c])), [capsules]);
+  const visibleLocations = useMemo(
+    () =>
+      locations.filter((l) => {
+        const capsule = capsuleById[l.capsuleId];
+        if (!capsule) return false;
+        return (
+          capsule.isPublic ||
+          capsule.ownerUserId === currentUserId ||
+          (currentUserEmail !== null &&
+            capsule.recipientEmail.toLowerCase() === currentUserEmail.toLowerCase())
+        );
+      }),
+    [capsuleById, currentUserEmail, currentUserId, locations],
+  );
 
   const center: [number, number] =
-    locations.length > 0 ? [locations[0].latitude, locations[0].longitude] : [48.8566, 2.3522];
+    visibleLocations.length > 0 ? [visibleLocations[0].latitude, visibleLocations[0].longitude] : [48.8566, 2.3522];
 
   return (
     <div className={layout.pageWrapper}>
@@ -103,7 +128,7 @@ const MemoryMap: React.FC = () => {
           )}
           {error && (
             <div className={catalog.errorState}>
-              <p>❌ {error}</p>
+              <p>{error}</p>
             </div>
           )}
           {!loading && !error && (
@@ -113,9 +138,9 @@ const MemoryMap: React.FC = () => {
                 <code>/api/capsulelocation</code> после создания капсулы.
               </p>
               <div className={mapStyles.mapWrap}>
-                <MapContainer center={center} zoom={locations.length ? 12 : 5} style={{ height: '100%', width: '100%' }}>
+                <MapContainer center={center} zoom={visibleLocations.length ? 12 : 5} style={{ height: '100%', width: '100%' }}>
                   <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                  {locations.map((l) => (
+                  {visibleLocations.map((l) => (
                     <Marker key={l.id} position={[l.latitude, l.longitude]}>
                       <Popup>
                         <strong>{titleById[l.capsuleId] ?? `Капсула #${l.capsuleId}`}</strong>
@@ -128,6 +153,7 @@ const MemoryMap: React.FC = () => {
                             <br />
                             <button
                               type="button"
+                              className={mapStyles.popupButton}
                               onClick={() => {
                                 const dist = distanceKm(myPosition[0], myPosition[1], l.latitude, l.longitude);
                                 if (dist <= 10) {
