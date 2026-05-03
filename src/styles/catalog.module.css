@@ -8,13 +8,13 @@
 .catalogHeaderSection {
   text-align: center;
   padding: 4rem 5% 2rem;
-  background: radial-gradient(circle at 50% 50%, rgba(139, 92, 246, 0.1), transparent 70%);
+  background: radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--primary) 18%, transparent), transparent 70%);
 }
 
 .catalogHeaderSection h1 {
   font-size: 3rem;
   margin-bottom: 1rem;
-  background: linear-gradient(135deg, #fff, var(--text-dim));
+  background: linear-gradient(135deg, var(--text), var(--text-dim));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
@@ -29,6 +29,12 @@
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+}
+
+.catalogControls select {
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
 }
 
 .loadingState {

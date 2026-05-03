@@ -1,36 +1,66 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Header from '../components/Header';
-import Footer from '../components/Footer';
-import SearchBar from '../components/SearchBar';
-import FilterButtons from '../components/FilterButtons';
-import ProductList from '../components/ProductList';
-import Counter from '../components/Counter';
-import { products as mockProducts, Product } from '../data/products';
-import { addLike, addOpenedCapsule, getLikesMap, getTotalLikes } from '../auth/capsuleStore';
+import Header from '../components/layout/Header';
+import Footer from '../components/layout/Footer';
+import SearchBar from '../components/filters/SearchBar';
+import FilterButtons from '../components/filters/FilterButtons';
+import ProductList from '../components/catalog/ProductList';
+import { Product } from '../data/products';
 import layout from '../styles/layout.module.css';
 import styles from '../styles/catalog.module.css';
+import { fetchJson } from '../config/api';
+import type { ProductDto } from '../types/api';
+import { getCatalogCounts, getCatalogUserReaction, toggleCatalogReaction } from '../auth/reactions';
 
 const Catalog: React.FC = () => {
   const [search, setSearch] = useState<string>('');
   const [filter, setFilter] = useState<string>('Все');
+  const [sortByPrice, setSortByPrice] = useState<'asc' | 'desc'>('asc');
+  const [tab, setTab] = useState<'all' | 'new'>('all');
+  const [page, setPage] = useState(1);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [likedCount, setLikedCount] = useState<number>(0);
   const [likesMap, setLikesMap] = useState<Record<number, number>>({});
+  const [dislikesMap, setDislikesMap] = useState<Record<number, number>>({});
+  const [userReactions, setUserReactions] = useState<Record<number, 'like' | 'dislike' | null>>({});
   const navigate = useNavigate();
+  const pageSize = 12;
 
-  const categories = ['Все', ...new Set(mockProducts.map((p) => p.category))];
+  const refreshReactions = (items: Product[]) => {
+    const likes: Record<number, number> = {};
+    const dislikes: Record<number, number> = {};
+    const user: Record<number, 'like' | 'dislike' | null> = {};
+
+    items.forEach((item) => {
+      const counts = getCatalogCounts(item.id);
+      likes[item.id] = counts.likes;
+      dislikes[item.id] = counts.dislikes;
+      user[item.id] = getCatalogUserReaction(item.id);
+    });
+
+    setLikesMap(likes);
+    setDislikesMap(dislikes);
+    setUserReactions(user);
+  };
 
   useEffect(() => {
     const loadProducts = async () => {
       try {
         setLoading(true);
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-        setProducts(mockProducts);
-        setLikesMap(getLikesMap());
-        setLikedCount(getTotalLikes());
+        const data = await fetchJson<ProductDto[]>('/api/product/getAll');
+        const mapped: Product[] = data.map((p) => ({
+          id: p.id,
+          name: p.name,
+          price: Number(p.price),
+          category: p.category || 'Без категории',
+          image: p.image || '/assets/default-capsule-cover.svg',
+          description: p.description || 'Без описания',
+          creatorName: 'Пользователь',
+          creatorEmail: 'hidden@memorylane.local',
+        }));
+        setProducts(mapped);
+        refreshReactions(mapped);
         setError(null);
       } catch (err: unknown) {
         setError(err instanceof Error ? err.message : 'Ошибка при загрузке');
@@ -42,23 +72,39 @@ const Catalog: React.FC = () => {
     void loadProducts();
   }, []);
 
-  const filteredProducts = products.filter((product) => {
-    const matchesSearch = product.name.toLowerCase().includes(search.toLowerCase());
-    const matchesFilter = filter === 'Все' || product.category === filter;
-    return matchesSearch && matchesFilter;
-  });
+  const categories = useMemo(() => ['Все', ...new Set(products.map((p) => p.category))], [products]);
+
+  const filteredProducts = useMemo(
+    () =>
+      products
+        .filter((product) => {
+          const matchesSearch = product.name.toLowerCase().includes(search.toLowerCase());
+          const matchesFilter = filter === 'Все' || product.category === filter;
+          const matchesTab = tab === 'all' || product.id > Math.max(0, products.length - pageSize);
+          return matchesSearch && matchesFilter && matchesTab;
+        })
+        .sort((a, b) => (sortByPrice === 'asc' ? a.price - b.price : b.price - a.price)),
+    [filter, pageSize, products, search, sortByPrice, tab],
+  );
+
+  const totalPages = Math.max(1, Math.ceil(filteredProducts.length / pageSize));
+  const paged = useMemo(
+    () => filteredProducts.slice((page - 1) * pageSize, page * pageSize),
+    [filteredProducts, page, pageSize],
+  );
 
   const handleLike = (id: number) => {
-    const updatedCount = addLike(id);
-    setLikesMap((prev) => ({ ...prev, [id]: updatedCount }));
-    setLikedCount(getTotalLikes());
+    toggleCatalogReaction(id, 'like');
+    refreshReactions(products);
+  };
+
+  const handleDislike = (id: number) => {
+    toggleCatalogReaction(id, 'dislike');
+    refreshReactions(products);
   };
 
   const handleOpen = (id: number) => {
-    const item = products.find((p) => p.id === id);
-    if (!item) return;
-    addOpenedCapsule(item);
-    navigate('/opened-capsules');
+    navigate(`/capsule-view/${id}`);
   };
 
   return (
@@ -72,9 +118,29 @@ const Catalog: React.FC = () => {
 
         <div className={layout.container}>
           <div className={styles.catalogControls}>
-            <Counter count={filteredProducts.length} likedCount={likedCount} />
             <SearchBar value={search} onChange={setSearch} />
             <FilterButtons categories={categories} activeFilter={filter} onFilterChange={setFilter} />
+            <div className={styles.catalogControls}>
+              <select
+                className={layout.btnPrimary}
+                value={sortByPrice}
+                onChange={(e) => setSortByPrice(e.target.value as 'asc' | 'desc')}
+              >
+                <option value="asc">Цена: по возрастанию</option>
+                <option value="desc">Цена: по убыванию</option>
+              </select>
+              <select
+                className={layout.btnPrimary}
+                value={tab}
+                onChange={(e) => {
+                  setTab(e.target.value as 'all' | 'new');
+                  setPage(1);
+                }}
+              >
+                <option value="all">Все товары</option>
+                <option value="new">Новые товары</option>
+              </select>
+            </div>
           </div>
 
           {loading && (
@@ -86,7 +152,7 @@ const Catalog: React.FC = () => {
 
           {error && (
             <div className={styles.errorState}>
-              <p>❌ Ошибка: {error}</p>
+              <p>Ошибка: {error}</p>
               <button type="button" onClick={() => window.location.reload()} className={layout.btnPrimary}>
                 Попробовать снова
               </button>
@@ -94,12 +160,41 @@ const Catalog: React.FC = () => {
           )}
 
           {!loading && !error && filteredProducts.length > 0 && (
-            <ProductList products={filteredProducts} likesMap={likesMap} onLike={handleLike} onOpen={handleOpen} />
+            <>
+              <ProductList
+                products={paged}
+                likesMap={likesMap}
+                dislikesMap={dislikesMap}
+                userReactions={userReactions}
+                onLike={handleLike}
+                onDislike={handleDislike}
+                onOpen={handleOpen}
+              />
+              <div className={styles.catalogControls}>
+                <button
+                  type="button"
+                  className={layout.btnPrimary}
+                  disabled={page <= 1}
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                >
+                  Назад
+                </button>
+                <span>{page} / {totalPages}</span>
+                <button
+                  type="button"
+                  className={layout.btnPrimary}
+                  disabled={page >= totalPages}
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                >
+                  Вперёд
+                </button>
+              </div>
+            </>
           )}
 
           {!loading && !error && filteredProducts.length === 0 && (
             <div className={styles.emptyState}>
-              <p>🔍 Ничего не найдено</p>
+              <p>Ничего не найдено</p>
               <p className={styles.emptyHint}>Попробуйте изменить параметры поиска</p>
             </div>
           )}
