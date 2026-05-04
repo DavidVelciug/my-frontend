@@ -60,6 +60,7 @@ const Header: React.FC = () => {
               <div className={styles.menuItems}>
                 <Link to="/create-capsule" className={styles.menuItem}>Создать капсулу</Link>
                 <Link to="/my-capsules" className={styles.menuItem}>Мои капсулы</Link>
+                <Link to="/sent-capsules" className={styles.menuItem}>Присланные капсулы</Link>
                 <Link to="/opened-capsules" className={styles.menuItem}>Открытые капсулы</Link>
                 <Link to="/map" className={styles.menuItem}>Карта</Link>
                 {canAccess(role, 'moderation') && (

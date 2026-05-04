@@ -1,35 +1,16 @@
-import type { Product } from '../data/products';
+import type { TimeCapsuleDto } from '../types/api';
+import { getCurrentUserId } from './session';
 
-const likesKey = 'memorylane-product-likes';
-const openedKey = 'memorylane-opened-capsules';
+const openedKeyPrefix = 'memorylane-opened-capsules-';
 
-export type OpenedCapsuleItem = Product & { openedAtUtc: string };
+export type OpenedCapsuleItem = TimeCapsuleDto & { openedAtUtc: string };
 
-export function getLikesMap(): Record<number, number> {
-  const raw = localStorage.getItem(likesKey);
-  if (!raw) return {};
-  try {
-    return JSON.parse(raw) as Record<number, number>;
-  } catch {
-    return {};
-  }
-}
-
-export function addLike(productId: number): number {
-  const map = getLikesMap();
-  const current = map[productId] ?? 0;
-  map[productId] = current + 1;
-  localStorage.setItem(likesKey, JSON.stringify(map));
-  return map[productId];
-}
-
-export function getTotalLikes(): number {
-  const map = getLikesMap();
-  return Object.values(map).reduce((acc, v) => acc + v, 0);
+function getOpenedKey(): string {
+  return `${openedKeyPrefix}${getCurrentUserId() ?? 0}`;
 }
 
 export function getOpenedCapsules(): OpenedCapsuleItem[] {
-  const raw = localStorage.getItem(openedKey);
+  const raw = localStorage.getItem(getOpenedKey());
   if (!raw) return [];
   try {
     return JSON.parse(raw) as OpenedCapsuleItem[];
@@ -38,8 +19,15 @@ export function getOpenedCapsules(): OpenedCapsuleItem[] {
   }
 }
 
-export function addOpenedCapsule(product: Product): void {
+export function addOpenedCapsule(capsule: TimeCapsuleDto, openedFrom?: string): void {
   const list = getOpenedCapsules();
-  list.unshift({ ...product, openedAtUtc: new Date().toISOString() });
-  localStorage.setItem(openedKey, JSON.stringify(list));
+  if (list.some((item) => item.id === capsule.id)) {
+    return;
+  }
+  list.unshift({
+    ...capsule,
+    openedAtUtc: new Date().toISOString(),
+    openedFrom: openedFrom ?? capsule.openedFrom ?? (capsule.isPublic ? 'Публичная капсула' : 'Присланная капсула'),
+  });
+  localStorage.setItem(getOpenedKey(), JSON.stringify(list));
 }

@@ -19,3 +19,7 @@ export function setAvatar(url: string): void {
   }
   localStorage.setItem(getKey(), url.trim());
 }
+
+export function getAvatarByUserId(userId: number): string | null {
+  return localStorage.getItem(`${AVATAR_KEY_PREFIX}${userId}`);
+}
