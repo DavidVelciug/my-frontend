@@ -25,7 +25,7 @@ const Catalog: React.FC = () => {
   const [dislikesMap, setDislikesMap] = useState<Record<number, number>>({});
   const [userReactions, setUserReactions] = useState<Record<number, 'like' | 'dislike' | null>>({});
   const navigate = useNavigate();
-  const pageSize = 12;
+  const pageSize = 15;
 
   const refreshReactions = (items: Product[]) => {
     const likes: Record<number, number> = {};
